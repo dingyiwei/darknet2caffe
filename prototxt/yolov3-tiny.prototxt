@@ -313,8 +313,8 @@ layer {
     pooling_param {
         stride: 1
         pool: MAX
-        kernel_size: 2
-        pad: 0
+        kernel_size: 3
+        pad: 1
     }
 }
 layer {
