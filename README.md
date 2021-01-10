@@ -1,11 +1,11 @@
 # Requirements
 
-  Python3
+- Python3
+- Caffe
+- Pytorch >= 0.40
 
-  Caffe
-
-  Pytorch >= 0.40
 # Add Caffe Layers
+
 1. Copy `caffe_layers/mish_layer/mish_layer.hpp,caffe_layers/upsample_layer/upsample_layer.hpp` into `include/caffe/layers/`.
 2. Copy `caffe_layers/mish_layer/mish_layer.cpp mish_layer.cu,caffe_layers/upsample_layer/upsample_layer.cpp upsample_layer.cu` into `src/caffe/layers/`.
 3. Copy `caffe_layers/pooling_layer/pooling_layer.cpp` into `src/caffe/layers/`.Note:only work for yolov3-tiny,use with caution.
@@ -39,13 +39,15 @@ message LayerParameter {
 5.remake caffe.
 
 # Demo
-  $ python cfg[in] weights[in] prototxt[out] caffemodel[out]
-  
-  Example
+
+Usage: darknet2caffe.py [-h] [--deconv] cfgfile weightfile protofile caffemodel
+
+Example:
 ```
-python cfg/yolov4.cfg weights/yolov4.weights prototxt/yolov4.prototxt caffemodel/yolov4.caffemodel
+python darknet2caffe.py cfg/yolov4.cfg weights/yolov4.weights prototxt/yolov4.prototxt caffemodel/yolov4.caffemodel
 ```
-  partial log as below.
+
+Partial log as below:
 ```
 I0522 10:19:19.015708 25251 net.cpp:228] layer1-act does not need backward computation.
 I0522 10:19:19.015712 25251 net.cpp:228] layer1-scale does not need backward computation.
@@ -60,5 +62,4 @@ unknow layer type yolo
 unknow layer type yolo 
 save prototxt to prototxt/yolov4.prototxt
 save caffemodel to caffemodel/yolov4.caffemodel
-
 ```
