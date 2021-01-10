@@ -3,12 +3,13 @@ os.environ['GLOG_minloglevel'] = '2'
 import sys
 import caffe
 import numpy as np
+import argparse
 from collections import OrderedDict
 from cfg import *
 from prototxt import *
 
-def darknet2caffe(cfgfile, weightfile, protofile, caffemodel):
-    net_info = cfg2prototxt(cfgfile)
+def darknet2caffe(cfgfile, weightfile, protofile, caffemodel, deconv):
+    net_info = cfg2prototxt(cfgfile, deconv)
     save_prototxt(net_info , protofile, region=False)
 
     net = caffe.Net(protofile, caffe.TEST)
@@ -141,7 +142,7 @@ def load_conv_bn2caffe(buf, start, conv_param, bn_param, scale_param):
 
     return start
 
-def cfg2prototxt(cfgfile):
+def cfg2prototxt(cfgfile, deconv):
     blocks = parse_cfg(cfgfile)
 
     prev_filters = 3
@@ -400,10 +401,24 @@ def cfg2prototxt(cfgfile):
             else:
                 upsample_layer['top'] = 'layer%d-upsample' % layer_id
                 upsample_layer['name'] = 'layer%d-upsample' % layer_id
-            upsample_layer['type'] = 'Upsample'
-            upsample_param = OrderedDict()
-            upsample_param['scale'] = block['stride']
-            upsample_layer['upsample_param'] = upsample_param
+            if deconv:
+                upsample_layer['type'] = 'Deconvolution'
+                upsample_param = OrderedDict()
+                upsample_param['num_output'] = prev_filters
+                stride = int(block['stride'])
+                upsample_param['kernel_size'] = 2 * stride
+                upsample_param['stride'] = stride
+                upsample_param['pad'] = stride // 2
+                upsample_param['bias_term'] = 'false'
+                weight_filler = OrderedDict()
+                weight_filler['type'] = 'bilinear'
+                upsample_param['weight_filler'] = weight_filler
+                upsample_layer['convolution_param'] = upsample_param
+            else:
+                upsample_layer['type'] = 'Upsample'
+                upsample_param = OrderedDict()
+                upsample_param['scale'] = block['stride']
+                upsample_layer['upsample_param'] = upsample_param
             layers.append(upsample_layer)
             bottom = upsample_layer['top']
             print('upsample:',layer_id)
@@ -490,19 +505,16 @@ def cfg2prototxt(cfgfile):
     return net_info
 
 if __name__ == '__main__':
-    import sys
-    if len(sys.argv) != 5:
-        print('try:')
-        print('python darknet2caffe.py tiny-yolo-voc.cfg tiny-yolo-voc.weights tiny-yolo-voc.prototxt tiny-yolo-voc.caffemodel')
-        print('')
-        print('please add name field for each block to avoid generated name')
-        exit()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('cfgfile')
+    parser.add_argument('weightfile')
+    parser.add_argument('protofile')
+    parser.add_argument('caffemodel')
+    parser.add_argument('--deconv', action='store_true', default=False)
+    args = parser.parse_args()
 
-    cfgfile = sys.argv[1]
     #net_info = cfg2prototxt(cfgfile)
     #print_prototxt(net_info)
     #save_prototxt(net_info, 'tmp.prototxt')
-    weightfile = sys.argv[2]
-    protofile = sys.argv[3]
-    caffemodel = sys.argv[4]
-    darknet2caffe(cfgfile, weightfile, protofile, caffemodel)
+
+    darknet2caffe(args.cfgfile, args.weightfile, args.protofile, args.caffemodel, args.deconv)
